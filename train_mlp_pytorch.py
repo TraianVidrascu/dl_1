@@ -84,7 +84,13 @@ def train():
     mlp.to(device)
     cifar10 = cifar10_utils.get_cifar10(FLAGS.data_dir)
 
+    # get all train data
+    x_train, y_train = cifar10["train"].images, cifar10["train"].labels
+    x_train = x_train.reshape((x_train.shape[0], IMAGE_SIZE))
 
+    x_train = torch.torch.from_numpy(x_train).to(device)
+    y_train = y_train.argmax(axis=1)
+    y_train = torch.from_numpy(y_train).to(device).type(torch.long)
 
     # get test data
     x_test, y_test = cifar10["test"].images, cifar10["test"].labels
@@ -122,13 +128,8 @@ def train():
 
         optimizer.step()  # updating the weights
 
-        acc = accuracy(predictions, targets)
-
-        # saving training accuracies
-        losses_train.append(loss.item())
-        accuracies_train.append(acc.item())
-
         if i % FLAGS.eval_freq == 0 or i == FLAGS.max_steps - 1:
+            # evaluate on Test
             forward_test = mlp.forward(inputs_test)
 
             acc = accuracy(forward_test, targets_test)
@@ -136,9 +137,19 @@ def train():
 
             loss_test = loss_function.forward(forward_test, targets_test)
             losses_test.append(loss_test.item())
-            print(
-                "loss:" + str(round(losses_test[-1], 2)) + " acc:" + str(
-                    round(accuracies_test[-1], 2)) + " model:" + str(i))
+            print("TEST loss:" + str(round(losses_test[-1], 2)) + " acc:" + str(
+                round(accuracies_test[-1], 2)) + " model:" + str(i))
+
+            # evaluate on Train
+            forward_train = mlp.forward(x_train)
+
+            acc_train = accuracy(forward_train, y_train)
+            accuracies_train.append(acc_train.item())
+
+            loss_train = loss_function.forward(forward_train, y_train)
+            losses_train.append(loss_train.item())
+            print("TRAIN loss:" + str(round(losses_train[-1], 2)) + " acc:" + str(
+                round(accuracies_train[-1], 2)) + " model:" + str(i))
 
     with open('../results/torch_mlp.pkl', 'wb') as f:
         mlp_data = dict()
