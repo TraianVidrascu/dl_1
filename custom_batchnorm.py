@@ -37,8 +37,8 @@ class CustomBatchNormAutograd(nn.Module):
 
         self.n_neurons = n_neurons
         self.eps = eps
-        self.gamma = nn.Parameter()
-        self.beta = nn.Parameter()
+        self.gamma = nn.Parameter(torch.ones(n_neurons), requires_grad=True)
+        self.beta = nn.Parameter(torch.zeros(n_neurons), requires_grad=True)
 
     def forward(self, input):
         """
@@ -57,9 +57,9 @@ class CustomBatchNormAutograd(nn.Module):
         out = input
         if input.shape[1] == self.n_neurons:
             mean = input.mean(dim=0)
-            variance = input.var(dim=0, unbiased=True)
+            variance = input.var(dim=0, unbiased=False)
             out = (input - mean) / (torch.sqrt(variance + self.eps))
-            out = self.gamma*out + self.beta
+            out = self.gamma * out + self.beta
         return out
 
 
@@ -104,14 +104,15 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
           for the backward pass. Do not store tensors which are unnecessary for the backward pass to save memory!
           For the case that you make use of torch.var be aware that the flag unbiased=False should be set.
         """
+        ctx.eps = eps
 
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-        raise NotImplementedError
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        mean = input.mean(dim=0)
+        variance = input.var(dim=0, unbiased=False)
+        sigma_epsilon = (torch.sqrt(variance + eps))
+        before_rescale = (input - mean) / sigma_epsilon
+        out = gamma * before_rescale + beta
+
+        ctx.save_for_backward(gamma, beta, before_rescale, sigma_epsilon)
 
         return out
 
@@ -132,14 +133,23 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
           inputs to None. This should be decided dynamically.
         """
 
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-        raise NotImplementedError
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        eps = ctx.eps
+        tensors = ctx.saved_tensors
 
+        grad_input = None
+        grad_gamma = None
+        grad_beta = None
+
+        if ctx.needs_input_grad[0]:
+            b = grad_output.shape[0]
+            grad_input = (tensors[0] / (b * tensors[3])) * (
+                    b * grad_output - grad_output.sum(dim=0) - torch.sum(grad_output * tensors[2], dim=0) *
+                    tensors[2])
+        if ctx.needs_input_grad[1]:
+            multiplied_tensor = grad_output * tensors[2]
+            grad_gamma = torch.sum(multiplied_tensor, dim=0)
+        if ctx.needs_input_grad[2]:
+            grad_beta = grad_output.sum(dim=0)
         # return gradients of the three tensor inputs and None for the constant eps
         return grad_input, grad_gamma, grad_beta, None
 
@@ -169,13 +179,10 @@ class CustomBatchNormManualModule(nn.Module):
         """
         super(CustomBatchNormManualModule, self).__init__()
 
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-        raise NotImplementedError
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        self.n_neurons = n_neurons
+        self.eps = eps
+        self.gamma = nn.Parameter(torch.ones(n_neurons))
+        self.beta = nn.Parameter(torch.rand(n_neurons))
 
     def forward(self, input):
         """
@@ -192,12 +199,9 @@ class CustomBatchNormManualModule(nn.Module):
           Call it via its .apply() method.
         """
 
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-        raise NotImplementedError
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        if input.shape[1] != self.n_neurons:
+            raise Exception
 
+        fct = CustomBatchNormManualFunction()
+        out = fct.apply(input, self.gamma, self.beta, self.eps)
         return out

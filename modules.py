@@ -75,8 +75,9 @@ class LinearModule(object):
         weight_gradients = dout.T.dot(self.feature_map)
         self.grads['weight'] = weight_gradients.T
 
-        bias_gradients = dout.sum(
-            axis=0)  # since bias is just added in case of batch size 1, we add all of them at once
+        # since bias is just added in case of batch size 1, we add all of them at once
+        bias_gradients = dout.sum(axis=0)
+
         self.grads['bias'] = bias_gradients
         return dx
 
