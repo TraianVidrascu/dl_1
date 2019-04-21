@@ -12,7 +12,6 @@ import os
 from convnet_pytorch import ConvNet
 import cifar10_utils
 import pickle as pk
-import matplotlib.pyplot as plt
 
 # Default constants
 LEARNING_RATE_DEFAULT = 1e-4
