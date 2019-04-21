@@ -148,14 +148,6 @@ def train():
         mlp_data["test_acc"] = accuracies_test
         pk.dump(mlp_data, f)
 
-    x = [i * FLAGS.eval_freq for i in range(len(accuracies_test))]
-    plt.title("Torch MLP loss accuracy")
-    plt.plot(x, accuracies_test, label="accuracy")
-    plt.plot(x, losses_test, label="loss")
-    plt.legend()
-    plt.savefig("../results/pytorch_mlp.png")
-    plt.show()
-
 
 def print_flags():
     """
