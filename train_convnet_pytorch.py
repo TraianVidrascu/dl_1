@@ -113,7 +113,7 @@ def train():
         loss.backward()  # backwards the loss into the net, updating gradients
 
         optimizer.step()  # updating the weights
-        del predictions
+        predictions.detach()
         if i % FLAGS.eval_freq == 0 or i == FLAGS.max_steps - 1:
             # evaluating test
             forward_test = conv_net.forward(inputs_test)
@@ -127,7 +127,7 @@ def train():
                 "TEST loss:" + str(round(losses_test[-1], 2)) + " acc:" + str(
                     round(accuracies_test[-1], 2)) + " model:" + str(i))
 
-            del forward_test
+            forward_test.detach()
             # evaluating train
             forward_train = conv_net.forward(x_train)
 
@@ -139,7 +139,7 @@ def train():
             print(
                 "TRAIN loss:" + str(round(losses_train[-1], 2)) + " acc:" + str(
                     round(accuracies_train[-1], 2)) + " model:" + str(i))
-            del forward_train
+            forward_train.detach()
 
     with open('../results/torch_conv.pkl', 'wb') as f:
         mlp_data = dict()
