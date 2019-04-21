@@ -113,6 +113,10 @@ def train():
         loss.backward()  # backwards the loss into the net, updating gradients
 
         optimizer.step()  # updating the weights
+
+        # freeing reserved space of memory
+        inputs.detach()
+        targets.detach()
         predictions.detach()
         if i % FLAGS.eval_freq == 0 or i == FLAGS.max_steps - 1:
             # evaluating test
