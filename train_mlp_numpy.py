@@ -5,7 +5,7 @@ You should fill in code into indicated sections.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+import gc
 import argparse
 import numpy as np
 import os
@@ -59,6 +59,8 @@ def accuracy(predictions, targets):
 
 
 def train():
+
+    gc.collect()
     """
     Performs training and evaluation of MLP model.
 
@@ -83,6 +85,9 @@ def train():
 
     x_test, y_test = cifar10["test"].images, cifar10["test"].labels
     x_test = x_test.reshape((x_test.shape[0], IMAGE_SIZE))
+
+    x_train, y_train = cifar10["train"].images, cifar10["train"].labels
+    x_train = x_train.reshape((x_train.shape[0], IMAGE_SIZE))
 
     mlp = MLP(IMAGE_SIZE, dnn_hidden_units, 10)
 
@@ -111,17 +116,22 @@ def train():
                 module.params['weight'] -= FLAGS.learning_rate * module.grads['weight']
                 module.params['bias'] -= FLAGS.learning_rate * module.grads['bias']
 
-        acc_train = accuracy(forward_test, y)
-
-        losses_train.append(loss_train)
-        accuracies_train.append(acc_train)
         if i % FLAGS.eval_freq == 0 or i == FLAGS.max_steps - 1:
+            # test dataset evaluation
             forward_test = mlp.forward(x_test)
             acc_test = accuracy(forward_test, y_test)
             loss_test = loss.forward(forward_test, y_test)
-            print("acc: " + str(round(acc_test, 2)) + " loss: " + str(round(loss_test, 3)) + " ittr: " + str(i))
+            print("TEST acc: " + str(round(acc_test, 2)) + " loss: " + str(round(loss_test, 3)) + " ittr: " + str(i))
             losses_test.append(loss_test)
             accuracies_test.append(acc_test)
+
+            #train dataset evaluation
+            forward_train = mlp.forward(x_train)
+            acc_train = accuracy(forward_train, y_train)
+            loss_train = loss.forward(forward_train, y_train)
+            print("TRAIN acc: " + str(round(acc_train, 2)) + " loss: " + str(round(loss_train, 3)) + " ittr: " + str(i))
+            losses_train.append(loss_train)
+            accuracies_train.append(acc_train)
 
     with open('../results/numpy_mlp.pkl', 'wb') as f:
         mlp_data = dict()
